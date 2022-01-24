@@ -168,6 +168,27 @@ void LedControl::setDigit(int addr, int digit, byte value, boolean dp) {
     spiTransfer(addr, digit+1,v);
 }
 
+void LedControl::setNumber(int addr, unsigned long value, byte points) {
+  bool flag = false;
+  unsigned long trimmed = value % 100000000;
+  unsigned long digit0 = (trimmed % 10) / 1;
+  unsigned long digit1 = (trimmed % 100) / 10;
+  unsigned long digit2 = (trimmed % 1000) / 100;
+  unsigned long digit3 = (trimmed % 10000) / 1000;
+  unsigned long digit4 = (trimmed % 100000) / 10000;
+  unsigned long digit5 = (trimmed % 1000000) / 100000;
+  unsigned long digit6 = (trimmed % 10000000) / 1000000;
+  unsigned long digit7 = (trimmed % 100000000) / 10000000;
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 7, 0x80)
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 6, 0x40)
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 5, 0x20)
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 4, 0x10)
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 3, 0x08)
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 2, 0x04)
+  NON_SIGNIFICANT_ZEROS_AWARE_SET(addr, 1, 0x02)
+  setDigit(addr, 0, digit0, points & 0x01);
+}
+
 void LedControl::setChar(int addr, int digit, char value, boolean dp) {
     int offset;
     byte index,v;
@@ -189,6 +210,16 @@ void LedControl::setChar(int addr, int digit, char value, boolean dp) {
     spiTransfer(addr, digit+1,v);
 }
 
+void LedControl::setString(int addr, char* value, byte points) {
+  short valuel = strlen(value);
+  for (int i=0; i<8-valuel; i++) {
+    setChar(addr, 7-i, ' ', points&(0x01<<(7-i)));
+  }
+  for (int i=0; i<8 && i<valuel; i++) {
+    setChar(addr, i, value[valuel-i-1], points&(0x01<<i));
+  }
+}
+
 void LedControl::spiTransfer(int addr, volatile byte opcode, volatile byte data) {
     //Create an array with the data to shift out
     int offset=addr*2;
@@ -207,5 +238,3 @@ void LedControl::spiTransfer(int addr, volatile byte opcode, volatile byte data)
     //latch the data onto the display
     digitalWrite(SPI_CS,HIGH);
 }    
-
-
